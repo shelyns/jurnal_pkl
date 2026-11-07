@@ -1,0 +1,14 @@
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Editor folders
+.vscode/
+.idea/
+
+# File konfigurasi lokal (jika nanti ada yang bersifat rahasia)
+.env
+
+# Folder uploads (Kosongkan jika tidak ingin foto lokal ikut terupload)
+assets/uploads/*
+!assets/uploads/.gitkeep
