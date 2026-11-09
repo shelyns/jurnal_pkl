@@ -6,32 +6,26 @@ requireLogin();
 $message = '';
 $msg_type = '';
 
-// Ambil data user terbaru dari database
 $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
 $stmt->execute([$user['id']]);
 $currentUserData = $stmt->fetch();
 
-// Proses simpan perubahan profil
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
     $name = trim($_POST['name']);
     $bio = trim($_POST['bio']);
     $jurusan = trim($_POST['jurusan']);
     $sekolah = trim($_POST['sekolah']);
     
-    $new_photo = $currentUserData['photo']; // Default pakai foto lama
+    $new_photo = $currentUserData['photo'];
 
-    // Cek apakah ada upload foto baru
     if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
         $tmp_name = $_FILES['photo']['tmp_name'];
         $filename = $_FILES['photo']['name'];
         $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
 
         if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
-            // Buat nama file unik
             $new_photo = 'user_' . $user['id'] . '_' . time() . '.' . $ext;
-            
             if (move_uploaded_file($tmp_name, UPLOAD_DIR . $new_photo)) {
-                // Hapus foto lama jika ada
                 if (!empty($currentUserData['photo']) && file_exists(UPLOAD_DIR . $currentUserData['photo'])) {
                     unlink(UPLOAD_DIR . $currentUserData['photo']);
                 }
@@ -43,11 +37,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 
     if (empty($message)) {
-        // Update database (kolom email tidak diubah karena kita jadikan username)
         $stmt = $pdo->prepare("UPDATE users SET name = ?, bio = ?, jurusan = ?, sekolah = ?, photo = ? WHERE id = ?");
         $stmt->execute([$name, $bio, $jurusan, $sekolah, $new_photo, $user['id']]);
         
-        // Update session agar nama di navbar langsung berubah
         $_SESSION['name'] = $name;
         $_SESSION['photo'] = $new_photo;
 
@@ -56,64 +48,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-// Tampilkan foto saat ini
 $fotoUrl = !empty($currentUserData['photo']) 
     ? UPLOAD_URL . $currentUserData['photo'] 
-    : 'https://ui-avatars.com/api/?name=' . urlencode($currentUserData['name']) . '&background=random&size=150';
+    : 'https://ui-avatars.com/api/?name=' . urlencode($currentUserData['name']) . '&background=EEF2FF&color=4F46E5&size=200';
 ?>
 
-<style>
-    .profile-container { display: flex; gap: 30px; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-    .profile-photo { text-align: center; flex: 0 0 200px; }
-    .profile-photo img { width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 4px solid #e2e8f0; margin-bottom: 15px; }
-    .profile-form { flex: 1; }
-    
-    .readonly-input { background-color: #edf2f7; color: #718096; cursor: not-allowed; }
-    
-    @media (max-width: 768px) {
-        .profile-container { flex-direction: column; }
-    }
-</style>
+<div class="mb-8">
+    <h1 class="text-2xl font-bold text-gray-900">👤 Pengaturan Profil</h1>
+    <p class="text-gray-500 mt-1">Perbarui informasi publik dan foto Anda.</p>
+</div>
 
-<h2 style="margin-bottom: 20px;">👤 Edit Profil</h2>
+<div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="md:flex">
+        <!-- Sisi Kiri: Foto -->
+        <div class="bg-gray-50 p-8 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-gray-100 md:w-1/3">
+            <img src="<?= $fotoUrl ?>" alt="Foto Profil" class="w-40 h-40 rounded-full object-cover ring-4 ring-white shadow-lg mb-4">
+            <h2 class="text-lg font-bold text-gray-800 text-center"><?= e($currentUserData['name']) ?></h2>
+            <p class="text-sm text-primary font-medium mb-1">@<?= e($currentUserData['email']) ?></p>
+            <span class="text-xs text-gray-500 bg-gray-200 px-3 py-1 rounded-full font-semibold mt-2"><?= $currentUserData['role'] === 'teacher' ? 'Guru Pembimbing' : 'Anggota PKL' ?></span>
+        </div>
 
-<div class="profile-container">
-    <div class="profile-photo">
-        <img src="<?= $fotoUrl ?>" alt="Foto Profil">
-        <p style="font-size: 12px; color: #718096;">Foto saat ini</p>
-    </div>
-    
-    <div class="profile-form">
-        <form method="POST" enctype="multipart/form-data">
-            <input type="hidden" name="action" value="update">
-            
-            <!-- Menampilkan Username (Readonly) -->
-            <label>Username Login</label>
-            <input type="text" value="<?= e($currentUserData['email']) ?>" class="readonly-input" readonly title="Username tidak dapat diubah">
-            
-            <label>Nama Lengkap</label>
-            <input type="text" name="name" value="<?= e($currentUserData['name']) ?>" required>
-            
-            <label>Ganti Foto Profil (Opsional)</label>
-            <input type="file" name="photo" accept="image/jpeg, image/png, image/webp">
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                <div>
-                    <label>Jurusan</label>
-                    <input type="text" name="jurusan" value="<?= e($currentUserData['jurusan']) ?>" placeholder="Contoh: RPL">
+        <!-- Sisi Kanan: Form -->
+        <div class="p-8 md:w-2/3">
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="update">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-5">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nama Lengkap</label>
+                        <input type="text" name="name" value="<?= e($currentUserData['name']) ?>" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Ganti Foto Profil</label>
+                        <input type="file" name="photo" accept="image/*" class="w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-primary hover:file:bg-indigo-100 border border-gray-200 rounded-lg bg-gray-50 cursor-pointer">
+                    </div>
                 </div>
-                <div>
-                    <label>Sekolah</label>
-                    <input type="text" name="sekolah" value="<?= e($currentUserData['sekolah']) ?>" placeholder="Contoh: SMK N 1 Contoh">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-5">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Jurusan</label>
+                        <input type="text" name="jurusan" value="<?= e($currentUserData['jurusan']) ?>" placeholder="Contoh: RPL" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Asal Sekolah</label>
+                        <input type="text" name="sekolah" value="<?= e($currentUserData['sekolah']) ?>" placeholder="Contoh: SMK N 1 Contoh" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none">
+                    </div>
                 </div>
-            </div>
-            
-            <label>Bio Singkat</label>
-            <textarea name="bio" rows="3" placeholder="Ceritakan sedikit tentang Anda..."><?= e($currentUserData['bio']) ?></textarea>
-            
-            <button type="submit" style="margin-top: 10px;">Simpan Perubahan</button>
-            <a href="<?= BASE_URL ?>/dashboard.php" class="btn" style="background: #a0aec0; text-decoration: none; display: inline-block; padding: 8px 16px; border-radius: 4px; color: white; margin-left: 10px;">Batal</a>
-        </form>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Bio Singkat</label>
+                    <textarea name="bio" rows="3" placeholder="Ceritakan sedikit tentang Anda..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none"><?= e($currentUserData['bio']) ?></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                    <a href="<?= BASE_URL ?>/dashboard.php" class="px-5 py-2.5 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors">Batal</a>
+                    <button type="submit" class="bg-primary hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 

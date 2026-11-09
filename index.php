@@ -2,7 +2,6 @@
 // index.php
 require_once __DIR__ . '/includes/functions.php';
 
-// Ambil semua user untuk ditampilkan
 $stmt = $pdo->query("SELECT name, role, bio, jurusan, sekolah, photo FROM users ORDER BY role DESC, id ASC");
 $users = $stmt->fetchAll();
 ?>
@@ -12,61 +11,72 @@ $users = $stmt->fetchAll();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= APP_NAME ?></title>
-    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css">
-    <style>
-        .hero { text-align: center; padding: 50px 20px; background: #2b6cb0; color: white; margin-bottom: 30px; border-radius: 8px; }
-        .hero h1 { font-size: 2.5rem; margin-bottom: 10px; }
-        .grid-profil { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
-        .card-profil { background: white; border-radius: 8px; padding: 20px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .card-profil img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 15px; border: 3px solid #e2e8f0; }
-        .card-profil h3 { margin-bottom: 5px; color: #2d3748; }
-        .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-bottom: 10px; }
-        .badge-guru { background: #fefcbf; color: #744210; }
-        .badge-siswa { background: #bee3f8; color: #2a4365; }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { primary: '#4F46E5' } } } }
+    </script>
 </head>
-<body>
-    <nav class="navbar" style="margin-bottom: 0; border-radius: 0;">
-        <div class="nav-brand"><a href="#">📔 <?= APP_NAME ?></a></div>
-        <div class="nav-links">
-            <a href="<?= BASE_URL ?>/login.php" class="btn" style="margin-left: 0;">Login Anggota</a>
+<body class="bg-gray-50 font-sans text-gray-800">
+
+    <!-- Navbar -->
+    <nav class="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-gray-100">
+        <div class="max-w-6xl mx-auto px-4 h-16 flex justify-between items-center">
+            <a href="#" class="text-xl font-bold text-primary flex items-center gap-2 hover:no-underline">
+                <span class="text-2xl">📔</span> Jurnal PKL
+            </a>
+            <a href="<?= BASE_URL ?>/login.php" class="bg-primary text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">
+                Login Anggota
+            </a>
         </div>
     </nav>
 
-    <main class="container">
-        <div class="hero">
-            <h1>Selamat Datang di Jurnal PKL</h1>
-            <p>Website dokumentasi kegiatan Praktik Kerja Lapangan (PKL) Kelompok Kami.</p>
-        </div>
+    <!-- Hero Section -->
+    <header class="max-w-6xl mx-auto px-4 py-20 text-center">
+        <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 mb-6 leading-tight">
+            Dokumentasi Kegiatan <br> <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-500">Praktik Kerja Lapangan</span>
+        </h1>
+        <p class="text-lg text-gray-500 max-w-2xl mx-auto mb-8">
+            Platform terpusat untuk mencatat jurnal harian, absensi, tugas, dan komunikasi kelompok PKL kami.
+        </p>
+    </header>
 
-        <h2 style="margin-bottom: 20px; text-align: center;">Profil Kelompok</h2>
-        <div class="grid-profil">
+    <!-- Profil Grid -->
+    <main class="max-w-6xl mx-auto px-4 pb-24">
+        <h2 class="text-2xl font-bold text-center mb-10 text-gray-800">Tim Kelompok Kami</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <?php foreach ($users as $u): ?>
-                <div class="card-profil">
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 text-center group">
                     <?php 
-                    // Tampilkan foto profil atau avatar default huruf depan
-                    $foto = !empty($u['photo']) ? UPLOAD_URL . $u['photo'] : 'https://ui-avatars.com/api/?name=' . urlencode($u['name']) . '&background=random&size=150';
+                    $foto = !empty($u['photo']) ? UPLOAD_URL . $u['photo'] : 'https://ui-avatars.com/api/?name=' . urlencode($u['name']) . '&background=EEF2FF&color=4F46E5&size=150';
                     ?>
-                    <img src="<?= $foto ?>" alt="<?= e($u['name']) ?>">
+                    <div class="relative inline-block mb-4">
+                        <img src="<?= $foto ?>" alt="<?= e($u['name']) ?>" class="w-24 h-24 rounded-full object-cover mx-auto ring-4 ring-gray-50 group-hover:ring-indigo-50 transition-all">
+                        <?php if ($u['role'] === 'teacher'): ?>
+                            <span class="absolute bottom-0 right-0 bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded-full border-2 border-white">Guru</span>
+                        <?php endif; ?>
+                    </div>
                     
-                    <?php if ($u['role'] === 'teacher'): ?>
-                        <div class="badge badge-guru">Guru Pembimbing</div>
-                    <?php else: ?>
-                        <div class="badge badge-siswa">Anggota</div>
-                    <?php endif; ?>
+                    <h3 class="text-lg font-bold text-gray-800 mb-1"><?= e($u['name']) ?></h3>
+                    <p class="text-sm text-primary font-medium mb-3"><?= e($u['jurusan'] ?: 'Anggota PKL') ?></p>
                     
-                    <h3><?= e($u['name']) ?></h3>
-                    <p style="font-size: 14px; color: #718096; margin-bottom: 10px;">
-                        <?= e($u['jurusan'] ?? '-') ?> <br> <?= e($u['sekolah'] ?? '-') ?>
+                    <p class="text-sm text-gray-500 line-clamp-3">
+                        <?= e($u['bio'] ?: 'Belum ada deskripsi bio.') ?>
                     </p>
-                    <p style="font-size: 13px;"><?= nl2br(e($u['bio'] ?? 'Belum ada bio.')) ?></p>
+                    
+                    <div class="mt-4 pt-4 border-t border-gray-100 text-xs text-gray-400">
+                        <?= e($u['sekolah'] ?: 'SMK N 1 Contoh') ?>
+                    </div>
                 </div>
             <?php endforeach; ?>
         </div>
     </main>
 
-    <footer class="footer">
-        <p>&copy; <?= date('Y') ?> <?= APP_NAME ?></p>
+    <footer class="bg-white border-t border-gray-200 py-8">
+        <div class="max-w-6xl mx-auto px-4 text-center text-sm text-gray-500">
+            &copy; <?= date('Y') ?> <?= APP_NAME ?>. All rights reserved.
+        </div>
     </footer>
 </body>
 </html>

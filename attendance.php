@@ -7,14 +7,12 @@ $today = date('Y-m-d');
 $message = '';
 $msg_type = '';
 
-// Proses simpan absen
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'absen') {
     $status = $_POST['status'] ?? '';
     $note = trim($_POST['note'] ?? '');
 
     if (in_array($status, ['hadir', 'izin', 'sakit', 'alpha'])) {
         try {
-            // Cek apakah hari ini sudah absen
             $stmt = $pdo->prepare("SELECT id FROM attendance WHERE user_id = ? AND date = ?");
             $stmt->execute([$user['id'], $today]);
             
@@ -22,11 +20,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $message = 'Anda sudah melakukan absen hari ini.';
                 $msg_type = 'error';
             } else {
-                // Simpan absen baru
                 $stmt = $pdo->prepare("INSERT INTO attendance (user_id, date, status, note) VALUES (?, ?, ?, ?)");
                 $stmt->execute([$user['id'], $today, $status, $note]);
-                $message = 'Absen berhasil disimpan!';
-                $msg_type = 'success';
+                setFlash('success', 'Absen berhasil disimpan!');
+                redirect('attendance.php');
             }
         } catch (Exception $e) {
             $message = 'Gagal menyimpan absen: ' . $e->getMessage();
@@ -35,102 +32,116 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-// Cek absen user hari ini
 $stmt = $pdo->prepare("SELECT status, note FROM attendance WHERE user_id = ? AND date = ?");
 $stmt->execute([$user['id'], $today]);
 $absenSaya = $stmt->fetch();
 
-// Ambil semua data absen hari ini (untuk rekap)
-$stmt = $pdo->prepare("
-    SELECT a.status, a.note, u.name, u.role 
-    FROM attendance a 
-    JOIN users u ON a.user_id = u.id 
-    WHERE a.date = ? 
-    ORDER BY u.role DESC, u.id ASC
-");
+$stmt = $pdo->prepare("SELECT a.status, a.note, u.name, u.role FROM attendance a JOIN users u ON a.user_id = u.id WHERE a.date = ? ORDER BY u.role DESC, u.id ASC");
 $stmt->execute([$today]);
 $rekapAbsen = $stmt->fetchAll();
 ?>
 
-<style>
-    .absen-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; }
-    .rekap-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-    .rekap-table th, .rekap-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #edf2f7; font-size: 14px; }
-    .rekap-table th { background: #f7fafc; font-weight: 600; color: #4a5568; }
-    .badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; text-transform: capitalize; }
-    .badge-hadir { background: #c6f6d5; color: #22543d; }
-    .badge-izin { background: #bee3f8; color: #2a4365; }
-    .badge-sakit { background: #fefcbf; color: #744210; }
-    .badge-alpha { background: #fed7d7; color: #822727; }
-    .status-done { text-align: center; padding: 30px; }
-</style>
-
-<h2 style="margin-bottom: 20px;">📅 Absen Harian (<?= tanggalIndo($today) ?>)</h2>
-
-<?php if ($message): ?>
-    <div class="flash flash-<?= $msg_type ?>"><?= e($message) ?></div>
-<?php endif; ?>
-
-<div class="absen-card">
-    <?php if ($absenSaya): ?>
-        <div class="status-done">
-            <h3 style="color: #38a169; margin-bottom: 10px;">✅ Anda Sudah Absen Hari Ini</h3>
-            <p style="margin-bottom: 5px;">Status: <span class="badge badge-<?= $absenSaya['status'] ?>"><?= $absenSaya['status'] ?></span></p>
-            <?php if ($absenSaya['note']): ?>
-                <p style="color: #718096; font-size: 14px;">Catatan: <?= e($absenSaya['note']) ?></p>
-            <?php endif; ?>
-        </div>
-    <?php else: ?>
-        <h3 style="margin-bottom: 15px;">Form Absen Hari Ini</h3>
-        <form method="POST">
-            <input type="hidden" name="action" value="absen">
-            
-            <label>Status Kehadiran</label>
-            <select name="status" required>
-                <option value="" disabled selected>-- Pilih Status --</option>
-                <option value="hadir">Hadir</option>
-                <option value="izin">Izin</option>
-                <option value="sakit">Sakit</option>
-                <option value="alpha">Alpha (Tanpa Keterangan)</option>
-            </select>
-            
-            <label>Catatan (Opsional)</label>
-            <input type="text" name="note" placeholder="Contoh: Izin ke dokter gigi">
-            
-            <button type="submit">Kirim Absen</button>
-        </form>
-    <?php endif; ?>
+<div class="mb-8">
+    <h1 class="text-2xl font-bold text-gray-900">📅 Absensi Harian</h1>
+    <p class="text-gray-500 mt-1">Tanggal: <span class="font-semibold text-primary"><?= tanggalIndo($today) ?></span></p>
 </div>
 
-<!-- Tabel Rekap Absen Hari Ini -->
-<h3 style="margin-bottom: 15px;">Rekap Absen Hari Ini</h3>
-<table class="rekap-table">
-    <thead>
-        <tr>
-            <th>No</th>
-            <th>Nama</th>
-            <th>Peran</th>
-            <th>Status</th>
-            <th>Catatan</th>
-        </tr>
-    </thead>
-    <tbody>
-        <?php if (empty($rekapAbsen)): ?>
-            <tr>
-                <td colspan="5" style="text-align: center; color: #718096;">Belum ada yang absen hari ini.</td>
-            </tr>
-        <?php endif; ?>
-        
-        <?php foreach ($rekapAbsen as $i => $r): ?>
-            <tr>
-                <td><?= $i + 1 ?></td>
-                <td><strong><?= e($r['name']) ?></strong></td>
-                <td><?= $r['role'] === 'teacher' ? 'Guru Pembimbing' : 'Anggota' ?></td>
-                <td><span class="badge badge-<?= $r['status'] ?>"><?= $r['status'] ?></span></td>
-                <td style="color: #718096;"><?= e($r['note'] ?: '-') ?></td>
-            </tr>
-        <?php endforeach; ?>
-    </tbody>
-</table>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="lg:col-span-1">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <?php if ($absenSaya): ?>
+                <div class="text-center py-6">
+                    <div class="inline-flex items-center justify-center w-20 h-20 bg-green-50 rounded-full mb-4 text-green-500">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">Sudah Absen!</h3>
+                    <p class="text-sm text-gray-500 mb-4">Anda tercatat hari ini.</p>
+                    
+                    <div class="inline-block px-4 py-1.5 rounded-full text-sm font-bold bg-indigo-50 text-primary uppercase">
+                        <?= $absenSaya['status'] ?>
+                    </div>
+                    <?php if ($absenSaya['note']): ?>
+                        <p class="mt-4 text-sm text-gray-500 italic">"<?= e($absenSaya['note']) ?>"</p>
+                    <?php endif; ?>
+                </div>
+            <?php else: ?>
+                <h3 class="font-bold text-gray-800 mb-4 border-b pb-3">Isi Kehadiran</h3>
+                <form method="POST">
+                    <input type="hidden" name="action" value="absen">
+                    
+                    <div class="space-y-3 mb-5">
+                        <label class="flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
+                            <input type="radio" name="status" value="hadir" required class="w-4 h-4 text-primary focus:ring-primary">
+                            <span class="ml-3 font-medium text-gray-700">Hadir</span>
+                        </label>
+                        <label class="flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
+                            <input type="radio" name="status" value="izin" required class="w-4 h-4 text-primary focus:ring-primary">
+                            <span class="ml-3 font-medium text-gray-700">Izin</span>
+                        </label>
+                        <label class="flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
+                            <input type="radio" name="status" value="sakit" required class="w-4 h-4 text-primary focus:ring-primary">
+                            <span class="ml-3 font-medium text-gray-700">Sakit</span>
+                        </label>
+                        <label class="flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
+                            <input type="radio" name="status" value="alpha" required class="w-4 h-4 text-primary focus:ring-primary">
+                            <span class="ml-3 font-medium text-gray-700">Alpha (Tanpa Kabar)</span>
+                        </label>
+                    </div>
+                    
+                    <div class="mb-5">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Catatan (Opsional)</label>
+                        <input type="text" name="note" placeholder="Contoh: Sakit demam" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none">
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-primary hover:bg-indigo-700 text-white py-3 rounded-xl font-bold transition-colors shadow-sm">Kirim Absen</button>
+                </form>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <div class="lg:col-span-2">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
+                <h3 class="font-bold text-gray-800">Rekap Anggota Hari Ini</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="text-sm text-gray-500 bg-white">
+                            <th class="py-3 px-6 font-semibold border-b">Nama</th>
+                            <th class="py-3 px-6 font-semibold border-b">Status</th>
+                            <th class="py-3 px-6 font-semibold border-b">Catatan</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm">
+                        <?php if (empty($rekapAbsen)): ?>
+                            <tr><td colspan="3" class="text-center py-8 text-gray-400">Belum ada data absen.</td></tr>
+                        <?php endif; ?>
+                        
+                        <?php foreach ($rekapAbsen as $r): 
+                            // Menggunakan IF-ELSE agar kompatibel dengan PHP versi berapapun
+                            $badge = 'bg-gray-100 text-gray-700';
+                            if ($r['status'] === 'hadir') $badge = 'bg-green-100 text-green-700';
+                            elseif ($r['status'] === 'izin') $badge = 'bg-blue-100 text-blue-700';
+                            elseif ($r['status'] === 'sakit') $badge = 'bg-yellow-100 text-yellow-700';
+                            elseif ($r['status'] === 'alpha') $badge = 'bg-red-100 text-red-700';
+                        ?>
+                            <tr class="hover:bg-gray-50 border-b border-gray-50 last:border-0">
+                                <td class="py-4 px-6">
+                                    <div class="font-medium text-gray-800"><?= e($r['name']) ?></div>
+                                    <div class="text-xs text-gray-400"><?= $r['role'] === 'teacher' ? 'Guru Pembimbing' : 'Anggota' ?></div>
+                                </td>
+                                <td class="py-4 px-6">
+                                    <span class="px-3 py-1 rounded-full text-xs font-bold uppercase <?= $badge ?>"><?= $r['status'] ?></span>
+                                </td>
+                                <td class="py-4 px-6 text-gray-600"><?= e($r['note'] ?: '-') ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

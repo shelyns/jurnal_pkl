@@ -34,104 +34,94 @@ $stmt = $pdo->query("SELECT * FROM tasks ORDER BY
 $tasks = $stmt->fetchAll();
 ?>
 
-<style>
-    .task-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; }
-    .task-card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-top: 4px solid #ccc; }
-    .task-card.todo { border-color: #e53e3e; }
-    .task-card.doing { border-color: #ecc94b; }
-    .task-card.done { border-color: #48bb78; opacity: 0.7; }
-    .task-title { font-weight: bold; font-size: 16px; margin-bottom: 5px; }
-    .task-meta { font-size: 12px; color: #718096; margin-bottom: 10px; }
-    .task-desc { font-size: 14px; margin-bottom: 15px; }
-    .task-actions { display: flex; justify-content: space-between; align-items: center; }
-    .status-select { padding: 4px; border-radius: 4px; font-size: 12px; border: 1px solid #cbd5e0; background: #f7fafc; cursor: pointer; }
-    
-    .form-add { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; display: none; }
-    .form-add.active { display: block; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-</style>
-
-<div style="display: flex; justify-content: space-between; align-items: center;">
-    <h2>📋 Daftar Tugas PKL</h2>
-    <button onclick="document.getElementById('form-add').classList.toggle('active')">+ Tambah Tugas</button>
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">📋 Daftar Tugas PKL</h1>
+        <p class="text-gray-500 mt-1">Kelola tugas dari guru pembimbing atau pekerjaan harian.</p>
+    </div>
+    <button onclick="document.getElementById('form-add').classList.toggle('hidden')" class="bg-primary hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        Tambah Tugas
+    </button>
 </div>
 
 <!-- Form Tambah Tugas -->
-<div id="form-add" class="form-add">
-    <h3 style="margin-bottom: 15px;">Tambah Tugas Baru</h3>
+<div id="form-add" class="hidden bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
+    <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-3">Tugas Baru</h3>
     <form method="POST">
         <input type="hidden" name="action" value="add">
         
-        <label>Nama Tugas / Pekerjaan</label>
-        <input type="text" name="title" required placeholder="Contoh: Input data barang">
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Tugas / Pekerjaan</label>
+            <input type="text" name="title" required placeholder="Contoh: Input data barang inventaris" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
+        </div>
         
-        <div class="form-row">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
             <div>
-                <label>Diberikan Oleh (Guru)</label>
-                <input type="text" name="teacher_name" placeholder="Nama Guru / Pembimbing">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Diberikan Oleh (Guru)</label>
+                <input type="text" name="teacher_name" placeholder="Nama Guru / Pembimbing" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
             </div>
             <div>
-                <label>Tenggat Waktu (Deadline)</label>
-                <input type="date" name="deadline">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Tenggat Waktu (Deadline)</label>
+                <input type="date" name="deadline" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
             </div>
         </div>
         
-        <label>Deskripsi / Keterangan (Opsional)</label>
-        <textarea name="description" rows="3" placeholder="Detail tugas..."></textarea>
+        <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Deskripsi (Opsional)</label>
+            <textarea name="description" rows="3" placeholder="Detail tugas..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"></textarea>
+        </div>
         
-        <button type="submit">Simpan Tugas</button>
+        <div class="flex justify-end">
+            <button type="submit" class="bg-primary hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm">Simpan Tugas</button>
+        </div>
     </form>
 </div>
 
 <!-- List Tugas -->
-<div class="task-grid">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     <?php if (empty($tasks)): ?>
-        <p style="color: #718096;">Belum ada tugas yang ditambahkan.</p>
+        <div class="col-span-full text-center text-gray-500 py-10">Belum ada tugas.</div>
     <?php endif; ?>
 
-    <?php foreach ($tasks as $t): ?>
-        <div class="task-card <?= $t['status'] ?>" id="card-<?= $t['id'] ?>">
-            <div class="task-title"><?= e($t['title']) ?></div>
-            <div class="task-meta">
-                👨‍🏫 <?= e($t['teacher_name'] ?: 'Tidak disebutkan') ?> <br>
-                📅 <?= $t['deadline'] ? tanggalIndo($t['deadline']) : 'Tanpa deadline' ?>
+    <?php foreach ($tasks as $t): 
+        $borderColor = $t['status'] === 'todo' ? 'border-t-red-500' : ($t['status'] === 'doing' ? 'border-t-yellow-400' : 'border-t-green-500');
+        $bgOpacity = $t['status'] === 'done' ? 'opacity-60' : '';
+    ?>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 border-t-4 <?= $borderColor ?> <?= $bgOpacity ?> p-5 transition-all" id="card-<?= $t['id'] ?>">
+            <h3 class="font-bold text-gray-900 text-lg mb-2"><?= e($t['title']) ?></h3>
+            <div class="text-sm text-gray-500 mb-4 space-y-1">
+                <p>👨‍🏫 <?= e($t['teacher_name'] ?: 'Tidak disebutkan') ?></p>
+                <p>📅 <?= $t['deadline'] ? tanggalIndo($t['deadline']) : 'Tanpa deadline' ?></p>
             </div>
             
             <?php if ($t['description']): ?>
-                <div class="task-desc"><?= nl2br(e($t['description'])) ?></div>
+                <p class="text-sm text-gray-600 mb-4 line-clamp-2"><?= e($t['description']) ?></p>
             <?php endif; ?>
 
-            <div class="task-actions">
-                <!-- Select status untuk update cepat via AJAX -->
-                <select class="status-select" onchange="updateStatus(<?= $t['id'] ?>, this.value)">
-                    <option value="todo" <?= $t['status'] === 'todo' ? 'selected' : '' ?>>🔴 Todo (Belum)</option>
-                    <option value="doing" <?= $t['status'] === 'doing' ? 'selected' : '' ?>>🟡 Doing (Proses)</option>
-                    <option value="done" <?= $t['status'] === 'done' ? 'selected' : '' ?>>🟢 Done (Selesai)</option>
+            <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
+                <select class="text-sm border border-gray-300 rounded-lg px-2 py-1 bg-gray-50 focus:ring-primary focus:border-primary cursor-pointer" onchange="updateStatus(<?= $t['id'] ?>, this.value)">
+                    <option value="todo" <?= $t['status'] === 'todo' ? 'selected' : '' ?>>🔴 Todo</option>
+                    <option value="doing" <?= $t['status'] === 'doing' ? 'selected' : '' ?>>🟡 Doing</option>
+                    <option value="done" <?= $t['status'] === 'done' ? 'selected' : '' ?>>🟢 Done</option>
                 </select>
 
-                <a href="?delete=<?= $t['id'] ?>" onclick="return confirm('Yakin hapus tugas ini?')" style="color: #e53e3e; font-size: 13px;">Hapus</a>
+                <a href="?delete=<?= $t['id'] ?>" onclick="return confirm('Hapus tugas ini?')" class="text-red-500 hover:text-red-700 text-sm font-medium transition-colors">Hapus</a>
             </div>
         </div>
     <?php endforeach; ?>
 </div>
 
 <script>
-    // Fungsi untuk update status tanpa refresh halaman
     async function updateStatus(id, status) {
-        // Ubah warna border card secara instan (animasi visual)
-        const card = document.getElementById('card-' + id);
-        card.className = 'task-card ' + status;
-        
-        if (status === 'done') card.style.opacity = '0.7';
-        else card.style.opacity = '1';
-
-        // Kirim perubahan ke server via AJAX
         try {
             await fetch('api/task_update.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: id, status: status })
             });
+            // Reload halaman agar urutan dan warna kartu langsung berubah
+            location.reload();
         } catch (e) {
             alert('Gagal update status. Cek koneksi internet.');
         }
