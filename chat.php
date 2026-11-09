@@ -6,7 +6,6 @@ $user = currentUser();
 ?>
 
 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[75vh] overflow-hidden">
-    <!-- Header Chat -->
     <div class="bg-primary text-white px-6 py-4 flex items-center gap-3 shrink-0">
         <div class="bg-white/20 p-2 rounded-full">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
@@ -17,12 +16,10 @@ $user = currentUser();
         </div>
     </div>
     
-    <!-- Area Pesan -->
     <div class="flex-1 p-6 overflow-y-auto bg-gray-50 flex flex-col gap-4" id="chat-box">
         <p class="text-center text-gray-400 text-sm mt-4" id="loading-msg">Memuat pesan...</p>
     </div>
     
-    <!-- Input Chat -->
     <div class="p-4 bg-white border-t border-gray-100 shrink-0">
         <form id="chat-form" class="flex gap-3">
             <input type="text" id="chat-input" placeholder="Ketik pesan..." autocomplete="off" required class="flex-1 px-5 py-3 bg-gray-50 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
@@ -37,6 +34,7 @@ $user = currentUser();
     const chatBox = document.getElementById('chat-box');
     const chatForm = document.getElementById('chat-form');
     const chatInput = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('send-btn');
     let lastRenderedId = 0;
 
     async function fetchMessages() {
@@ -50,7 +48,6 @@ $user = currentUser();
                 
                 messages.forEach(msg => {
                     if (msg.id > lastRenderedId) {
-                        // Desain Bubble Chat
                         const bubbleStyle = msg.is_me 
                             ? 'bg-primary text-white rounded-t-2xl rounded-bl-2xl' 
                             : 'bg-white border border-gray-100 shadow-sm text-gray-800 rounded-t-2xl rounded-br-2xl';
@@ -90,17 +87,33 @@ $user = currentUser();
         e.preventDefault();
         const content = chatInput.value.trim();
         if (!content) return;
-        chatInput.value = '';
+
+        // Matikan tombol sementara agar tidak double click
+        sendBtn.disabled = true;
+        sendBtn.style.opacity = '0.5';
         
         try {
-            await fetch('<?= BASE_URL ?>/api/chat_send.php', {
+            const response = await fetch('<?= BASE_URL ?>/api/chat_send.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content: content })
             });
-            fetchMessages();
+            
+            const result = await response.json();
+
+            if (result.status === 'success') {
+                chatInput.value = ''; // Kosongkan input jika berhasil
+                fetchMessages(); // Panggil pesan terbaru
+            } else {
+                alert("Gagal mengirim pesan: " + (result.message || "Error tidak diketahui"));
+            }
         } catch (err) {
-            alert("Gagal mengirim pesan.");
+            console.error(err);
+            alert("Gagal terhubung ke server. Cek koneksi atau XAMPP.");
+        } finally {
+            // Nyalakan kembali tombol
+            sendBtn.disabled = false;
+            sendBtn.style.opacity = '1';
         }
     });
 
