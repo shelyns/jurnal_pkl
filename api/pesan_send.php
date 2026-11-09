@@ -1,5 +1,5 @@
 <?php
-// api/chat_send.php
+// api/pesan_send.php
 session_start();
 require_once __DIR__ . '/../config/db.php';
 

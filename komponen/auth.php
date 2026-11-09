@@ -1,5 +1,5 @@
 <?php
-// includes/auth.php
+// komponen/auth.php
 // Middleware login & role
 
 if (session_status() === PHP_SESSION_NONE) {

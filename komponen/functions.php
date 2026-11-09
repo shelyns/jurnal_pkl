@@ -1,5 +1,5 @@
 <?php
-// includes/functions.php
+// komponen/functions.php
 // Helper functions global
 
 require_once __DIR__ . '/../config/db.php';
