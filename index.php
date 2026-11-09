@@ -26,7 +26,7 @@ $users = $stmt->fetchAll();
                 <span class="text-2xl">📔</span> Jurnal PKL
             </a>
             <a href="<?= BASE_URL ?>/login.php" class="bg-primary text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">
-                Login Anggota
+                Login 
             </a>
         </div>
     </nav>
